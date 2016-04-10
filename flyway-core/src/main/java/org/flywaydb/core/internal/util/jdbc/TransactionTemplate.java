@@ -65,38 +65,38 @@ public class TransactionTemplate {
      * @return The result of the transaction code.
      */
     public <T> T execute(TransactionCallback<T> transactionCallback) {
-        boolean oldAutocommit = true;
+//        boolean oldAutocommit = true;
         try {
-            oldAutocommit = connection.getAutoCommit();
-            connection.setAutoCommit(false);
+//            oldAutocommit = connection.getAutoCommit();
+//            connection.setAutoCommit(false);
             T result = transactionCallback.doInTransaction();
-            connection.commit();
+//            connection.commit();
             return result;
         } catch (SQLException e) {
             throw new FlywayException("Unable to commit transaction", e);
         } catch (RuntimeException e) {
             if (rollbackOnException) {
-                try {
-                    LOG.debug("Rolling back transaction...");
-                    connection.rollback();
-                    LOG.debug("Transaction rolled back");
-                } catch (SQLException se) {
-                    LOG.error("Unable to rollback transaction", se);
-                }
+//                try {
+//                    LOG.debug("Rolling back transaction...");
+//                    connection.rollback();
+//                    LOG.debug("Transaction rolled back");
+//                } catch (SQLException se) {
+//                    LOG.error("Unable to rollback transaction", se);
+//                }
             } else {
-                try {
-                    connection.commit();
-                } catch (SQLException se) {
-                    LOG.error("Unable to commit transaction", se);
-                }
+//                try {
+//                    connection.commit();
+//                } catch (SQLException se) {
+//                    LOG.error("Unable to commit transaction", se);
+//                }
             }
             throw e;
         } finally {
-            try {
-                connection.setAutoCommit(oldAutocommit);
-            } catch (SQLException e) {
-                LOG.error("Unable to restore autocommit to original value for connection", e);
-            }
+//            try {
+//                connection.setAutoCommit(oldAutocommit);
+//            } catch (SQLException e) {
+//                LOG.error("Unable to restore autocommit to original value for connection", e);
+//            }
         }
     }
 }

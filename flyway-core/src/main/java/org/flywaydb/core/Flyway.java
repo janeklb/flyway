@@ -295,6 +295,8 @@ public class Flyway implements FlywayConfiguration {
      */
     private boolean dbConnectionInfoPrinted;
 
+    private boolean singleTransaction;
+
     /**
      * Creates a new instance of Flyway. This is your starting point.
      */
@@ -905,6 +907,14 @@ public class Flyway implements FlywayConfiguration {
         this.skipDefaultResolvers = skipDefaultResolvers;
     }
 
+    public boolean isSingleTransaction() {
+        return singleTransaction;
+    }
+
+    public void setSingleTransaction(boolean singleTransaction) {
+        this.singleTransaction = singleTransaction;
+    }
+
     /**
      * <p>Starts the database migration. All pending migrations will be applied in order.
      * Calling migrate on an up-to-date database has no effect.</p>
@@ -956,7 +966,16 @@ public class Flyway implements FlywayConfiguration {
                 DbMigrate dbMigrate =
                         new DbMigrate(connectionMetaDataTable, connectionUserObjects, dbSupport, metaDataTable,
                                 schemas[0], migrationResolver, target, ignoreFutureMigrations, ignoreFailedFutureMigration, outOfOrder, flywayCallbacks);
-                return dbMigrate.migrate();
+
+                int result = dbMigrate.migrate();
+
+                try {
+                    connectionMetaDataTable.commit();
+                    connectionUserObjects.commit();
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
+                return result;
             }
         });
     }
@@ -1258,6 +1277,10 @@ public class Flyway implements FlywayConfiguration {
         if (skipDefaultCallbacksProp != null) {
             setSkipDefaultCallbacks(Boolean.parseBoolean(skipDefaultCallbacksProp));
         }
+        String singleTransaction = getValueAndRemoveEntry(props, "flyway.singleTransaction");
+        if (singleTransaction != null) {
+            setSingleTransaction(Boolean.parseBoolean(singleTransaction));
+        }
 
         Map<String, String> placeholdersFromProps = new HashMap<String, String>(placeholders);
         Iterator<Map.Entry<String, String>> iterator = props.entrySet().iterator();
@@ -1317,6 +1340,12 @@ public class Flyway implements FlywayConfiguration {
 
             connectionMetaDataTable = JdbcUtils.openConnection(dataSource);
             connectionUserObjects = JdbcUtils.openConnection(dataSource);
+            try {
+	            connectionMetaDataTable.setAutoCommit(false);
+	            connectionUserObjects.setAutoCommit(false);
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
 
             DbSupport dbSupport = DbSupportFactory.createDbSupport(connectionMetaDataTable, !dbConnectionInfoPrinted);
             dbConnectionInfoPrinted = true;

@@ -651,6 +651,27 @@ public abstract class MigrationTestCase {
         assertFalse(dbSupport.getSchema("InVaLidScHeMa").exists());
     }
 
+    @Test
+    public void failedMigrationSingleTransaction() throws Exception {
+        flyway.setValidateOnMigrate(false);
+        flyway.setLocations(getFutureFailedLocation());
+        flyway.setSingleTransaction(true);
+
+        try {
+            flyway.migrate();
+            fail();
+        } catch (FlywayException e) {
+            // Expected
+        }
+
+        if (dbSupport.supportsDdlTransactions()) {
+            Schema schema = dbSupport.getSchema(dbSupport.getCurrentSchemaName());
+            assertFalse(schema.getTable("test_user").exists());
+        } else {
+            assertEquals(0, jdbcTemplate.queryForInt("select count(*) from test_user"));
+        }
+    }
+
     protected void createTestTable() throws SQLException {
         jdbcTemplate.execute("CREATE TABLE t1 (\n" +
                 "  name VARCHAR(25) NOT NULL,\n" +
